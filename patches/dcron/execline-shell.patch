@@ -1,0 +1,26 @@
+--- a/job.c
++++ b/job.c.new
+@@ -105,20 +105,20 @@ RunJob(CronFile *file, CronLine *line)
+ 		 */
+ 		setpgid(0, 0);
+
+-		execl("/bin/sh", "/bin/sh", "-c", line->cl_Shell, NULL);
++		execl("/bin/execlineb", "/bin/execlineb", "-Pc", line->cl_Shell, NULL);
+ 		/*
+ 		 * CHILD FAILED TO EXEC CRONJOB
+ 		 *
+ 		 * Complain to our log (now associated with fd 8)
+ 		 */
+-		fdprintlogf(LOG_ERR, 8, "unable to exec (user %s cmd /bin/sh -c %s)\n",
++		fdprintlogf(LOG_ERR, 8, "unable to exec (user %s cmd /bin/execlineb -c %s)\n",
+ 				file->cf_UserName,
+ 				line->cl_Shell
+ 			   );
+ 		/*
+ 		 * Also complain to stdout, which will be either the mailFile or /dev/null
+ 		 */
+-		fdprintf(1, "unable to exec: /bin/sh -c %s\n", line->cl_Shell);
++		fdprintf(1, "unable to exec: /bin/execlineb -c %s\n", line->cl_Shell);
+ 		exit(0);
+
+ 	} else if (line->cl_Pid < 0) {

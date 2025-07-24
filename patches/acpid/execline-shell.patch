@@ -1,0 +1,11 @@
+--- a/event.c
++++ b/event.c
+@@ -687,7 +687,7 @@ do_cmd_rule(struct rule *rule, const char *event)
+ 			fprintf(stdout, "BEGIN HANDLER MESSAGES\n");
+ 		}
+ 		umask(0077);
+-		execl("/bin/sh", "/bin/sh", "-c", action, NULL);
++		execl("/bin/execlineb", "/bin/execlineb", "-PWc", action, NULL);
+ 		/* should not get here */
+ 		acpid_log(LOG_ERR, "execl(): %s", strerror(errno));
+ 		_exit(EXIT_FAILURE);

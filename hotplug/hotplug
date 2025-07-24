@@ -1,0 +1,47 @@
+#!/bin/sh -e
+[ $ACTION = add ] || exit
+
+case $DEVNAME in
+bus/usb/*/*)
+	chmod 664 /dev/$DEVNAME && chown :usb /dev/$DEVNAME;;
+console | hwrandom | net/* | tty[0-9])
+	chmod 600 /dev/$DEVNAME;;
+cuse | fuse | null | ptmx | random | urandom | zero)
+	chmod 666 /dev/$DEVNAME;;
+dri/* | fb[0-9]* | vbi[0-9]* | video[0-9]*)
+	chmod 660 /dev/$DEVNAME && chown :video /dev/$DEVNAME;;
+fd[0-9]*)
+	chmod 660 /dev/$DEVNAME && chown :floppy /dev/$DEVNAME;;
+full | log)
+	chmod 622 /dev/$DEVNAME;;
+hd[a-z]* | loop* | md[0-9]* | ram* | sd[a-z]* | zram*)
+	chmod 660 /dev/$DEVNAME && chown :disk /dev/$DEVNAME;;
+input/*)
+	chmod 660 /dev/$DEVNAME && chown :input /dev/$DEVNAME;;
+kmem | mem | port)
+	chmod 640 /dev/$DEVNAME && chown :kmem /dev/$DEVNAME;;
+kmsg | rtcwake)
+	chmod 644 /dev/$DEVNAME;;
+kvm | vhost-net)
+	chmod 660 /dev/$DEVNAME && chown :kvm /dev/$DEVNAME;;
+pty* | tty[0-9]* | vcs*)
+	chmod 660 /dev/$DEVNAME && chown :tty /dev/$DEVNAME;;
+rtc[0-9]*)
+	chmod 664 /dev/$DEVNAME && [ -L /dev/rtc ] || ln -s $DEVNAME /dev/rtc;;
+snd/*)
+	chmod 660 /dev/$DEVNAME && chown :audio /dev/$DEVNAME;;
+sr[0-9]*)
+	chmod 660 /dev/$DEVNAME && chown :cdrom /dev/$DEVNAME;;
+tty)
+	chmod 666 /dev/$DEVNAME && chown :tty /dev/$DEVNAME;;
+ttyS*)
+	chmod 660 /dev/$DEVNAME && chown :dialout /dev/$DEVNAME;;
+*)
+	read alias < /sys/$DEVPATH/device/modalias
+	case $alias in
+	hid*0003*1050*0115* | hid*0003*1050*0407*)
+		chmod 660 /dev/$DEVNAME && chown :card /dev/$DEVNAME;;
+	esac
+	unset alias;;
+esac
+exit 0

@@ -1,0 +1,143 @@
+#!/bin/execlineb -s0
+#
+# TODO:
+# add Downloads directory to writes
+# add ebuild to parity (ostree depends on e2fsprogs due to libext2fs)
+# add pcsc socket as readonly
+# dbus is not being used by firefox (set options to 1 ; configure tofi)
+# pull in HOME and XDG_DOWNLOADS_DIR (with sandbox equivalents)
+#
+getpid -E PID
+importas -i XDG_RUNTIME_DIR XDG_RUNTIME_DIR
+
+multisubstitute
+{
+	define repository ${XDG_RUNTIME_DIR}/firefox-sandbox-${PID}
+
+	define sandbox_home /home/test
+	define sandbox_path /usr/bin
+	define sandbox_tmp  /tmp
+
+	importas XDG_CACHE_HOME XDG_CACHE_HOME
+	importas XDG_CONFIG_HOME XDG_CONFIG_HOME
+
+	importas -D pipewire-0 PIPEWIRE_CORE PIPEWIRE_CORE
+
+	importas -i DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_ADDRESS
+	importas -i WAYLAND_DISPLAY WAYLAND_DISPLAY
+}
+
+# Bootstrap sandbox. These definitions depend on a previous `multisubstitute`.
+#
+fdreserve 1
+
+multisubstitute
+{
+	define dbus_proxy ${repository}/bus
+	define fd_backend ${repository}/ready_notification
+
+	define sandbox_dbus ${sandbox_tmp}/bus
+	define sandbox_pipewire ${sandbox_tmp}/${PIPEWIRE_CORE}
+	define sandbox_wayland ${sandbox_tmp}/${WAYLAND_DISPLAY}
+
+	importas -i ready_fd FD0
+}
+
+foreground
+{ mkdir -p $repository }
+
+foreground
+{ touch $fd_backend }
+
+redirfd -u $ready_fd $fd_backend
+
+# Harden sandbox by filtering dbus requests.
+#
+background
+{
+	xdg-dbus-proxy --fd=${ready_fd} $DBUS_SESSION_BUS_ADDRESS $dbus_proxy
+	--filter
+	--broadcast=org.freedesktop.portal.*=@/org/freedesktop/portal/*
+	--call=org.freedesktop.portal.*=*
+	--own=org.mozilla.firefox.*
+	--own=org.mozilla.firefox_beta.*
+	--own=org.mpris.MediaPlayer2.firefox.*
+	--talk=org.a11y.Bus
+	--talk=org.gtk.vfs.*
+	--talk=org.pipewire.node
+}
+
+# Ready notification is unstable. Use this hack until better solution is found.
+#
+wait -t 1
+{ }
+
+# Run sandbox.
+#
+foreground
+{
+	bwrap --block-fd $ready_fd --die-with-parent --new-session
+
+	--disable-userns
+	--unshare-cgroup
+	--unshare-ipc
+	--unshare-pid
+	--unshare-user
+
+	# `--setenv` must be defined after `--clearenv`
+	#
+	--clearenv
+	--setenv DBUS_SESSION_BUS_ADDRESS unix:path=${sandbox_dbus}
+	--setenv HOME $sandbox_home
+	--setenv MOZ_ENABLE_WAYLAND 1
+	--setenv PATH $sandbox_path
+	--setenv TMPDIR $sandbox_tmp
+	--setenv WAYLAND_DISPLAY $sandbox_wayland
+	--setenv XDG_RUNTIME_DIR $sandbox_tmp
+
+	# `--bind` must be defined after `--tmpfs`
+	#
+	--proc  /proc
+	--tmpfs $sandbox_tmp
+
+	--bind /dev/shm /dev/shm
+	--bind $dbus_proxy $sandbox_dbus
+
+	--bind-try ${XDG_CACHE_HOME}/mozilla ${sandbox_home}/.cache/mozilla
+	--bind-try ${XDG_CONFIG_HOME}/mozilla ${sandbox_home}/.mozilla
+
+	--dev-bind /dev/null /dev/null
+	--dev-bind /dev/tty /dev/tty
+	--dev-bind /dev/urandom /dev/urandom
+	--dev-bind /dev/zero /dev/zero
+
+	--dev-bind-try /dev/dri/renderD128 /dev/dri/renderD128
+
+	--ro-bind /etc /etc
+	--ro-bind /sys /sys
+	--ro-bind /usr/bin /usr/bin
+	--ro-bind /usr/lib /usr/lib
+	--ro-bind /usr/share /usr/share
+#	--ro-bind ${XDG_RUNTIME_DIR}/${PIPEWIRE_CORE} $sandbox_pipewire
+	--ro-bind ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY} $sandbox_wayland
+
+	# `--symlink` is used on merged-usr setup. Otherwise, use `--ro-bind`.
+	#
+	--symlink /usr/bin /bin
+	--symlink /usr/lib /lib
+
+	firefox ${@}
+}
+
+# Cleanup sandbox.
+#
+fdclose $ready_fd
+
+foreground
+{
+	importas -u bg !
+	kill $bg
+}
+
+foreground
+{ rm -r $repository }

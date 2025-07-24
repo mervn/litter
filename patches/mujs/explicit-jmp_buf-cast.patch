@@ -1,0 +1,29 @@
+Mitigates an issue where CXX compilation fails due to a function mismatch.
+This is not a bug of MuJS; CXX compilers must respect C calling-conventions.
+
+This fix is ugly but unavoidable because:
+
+	A) C does not implicitly cast void* to <non-void>*.
+		- This means `(jmp_buf) js_savetry(J)` will not work.
+
+	B) CXX does not implicitly dereference pointers.
+		- This means `(jmp_buf*) js_savetry(J)` will not work.
+
+	C) Multi-statement macros are not standard nor supported.
+		- This means `x = jmp_buf* ; y = *x ; setjmp(y)` will not work.
+
+If you have a cleaner mitigation to the problem, please consider contributing.
+
+diff --git a/mujs.h b/mujs.h
+index 6c04860..11a164f 100644
+--- a/mujs.h
++++ b/mujs.h
+@@ -69,7 +69,7 @@ int js_pconstruct(js_State *J, int n);
+ void *js_savetry(js_State *J); /* returns a jmp_buf */
+
+ #define js_try(J) \
+-	setjmp(js_savetry(J))
++	setjmp(*(jmp_buf *) js_savetry(J))
+
+ void js_endtry(js_State *J);
+

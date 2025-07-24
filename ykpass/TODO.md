@@ -1,0 +1,13 @@
+- algo: change separator from "" to "+"; do not let echo(1) decide
+- show: add option that aliases NAME/SALT in a local database
+- show: add option that assigns ALIAS
+- show: add option that assigns NAME
+- show: add option that assigns SALT
+- show: add option that capitalizes first N-chars from result
+- show: add option that performs symmetric encryption with ykpass result
+- show: add option that prints first N-chars from result
+- show: add option that removes newline from end-of-line
+- show: send notification via dbus-send; and erase clipboard after first use
+- ykpass: add subcommands import and init
+- ykpass: make ykpass a wrapper and ykpass\_core.py the implementation
+- ykpass\_core.py: stores secrets on key using PIV-objects

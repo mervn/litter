@@ -1,0 +1,117 @@
+diff --git a/src/init.c b/src/init.c
+index 9e12636..21c399d 100644
+--- a/src/init.c
++++ b/src/init.c
+@@ -20,7 +20,7 @@ static void seed_rng_device(void);
+ static void set_hostname(void);
+ static void disable_three_finger_salute(void);
+
+-void boot_system() {
++void boot_system(void) {
+     mount_pseudo_filesystems();
+     execute("/usr/lib/hummingbird/fs");
+
+@@ -33,14 +33,14 @@ void boot_system() {
+     execute("/usr/lib/hummingbird/tty");
+ }
+
+-static void mount_pseudo_filesystems() {
++static void mount_pseudo_filesystems(void) {
+     mount("proc", "/proc", "proc",     MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL);
+     mount("sys",  "/sys",  "sysfs",    MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL);
+     mount("run",  "/run",  "tmpfs",    MS_NOSUID | MS_NODEV,      "mode=0755");
+     mount("dev",  "/dev",  "devtmpfs", MS_NOSUID,                 "mode=0755");
+ }
+
+-static void seed_rng_device() {
++static void seed_rng_device(void) {
+     void *seed;
+     struct stat status;
+     int fd = open("/usr/lib/hummingbird/random.seed", O_RDONLY);
+@@ -64,7 +64,7 @@ static void seed_rng_device() {
+     munmap(seed, status.st_size);
+ }
+
+-static void set_hostname() {
++static void set_hostname(void) {
+     struct stat status;
+     void *mapped_file = MAP_FAILED;
+     char *hostname = "linux";
+@@ -89,12 +89,12 @@ static void set_hostname() {
+         munmap(mapped_file, status.st_size);
+ }
+
+-static void disable_three_finger_salute() {
++static void disable_three_finger_salute(void) {
+     // Pressing Ctrl+Alt+Del before this call will cause a system reboot.
+     reboot(LINUX_REBOOT_CMD_CAD_OFF);
+ }
+
+-void drop_to_emergency_shell() {
++void drop_to_emergency_shell(void) {
+     fputs("Init failed, dropping into emergency root shell.", stderr);
+     execute("/bin/sh");
+ }
+diff --git a/src/shutdown.c b/src/shutdown.c
+index ee5786b..a0d9c7a 100644
+--- a/src/shutdown.c
++++ b/src/shutdown.c
+@@ -16,7 +16,7 @@ static void unmount_filesystems(void);
+ static void clear_directory(char*);
+ static void seed_rng_device(void);
+
+-void shutdown_system() {
++void shutdown_system(void) {
+     execute("/usr/lib/hummingbird/shutdown");
+     clear_directory("/tmp");
+     seed_rng_device();
+@@ -25,7 +25,7 @@ void shutdown_system() {
+     unmount_filesystems();
+ }
+
+-static void unmount_filesystems() {
++static void unmount_filesystems(void) {
+     struct mntent *mount_point;
+     FILE *mounts = setmntent("/proc/mounts", "r");
+
+@@ -66,7 +66,7 @@ static void clear_directory(char *temp_path) {
+     closedir(directory);
+ }
+
+-static void seed_rng_device() {
++static void seed_rng_device(void) {
+     void *seed = calloc(512, sizeof(char));
+
+     if (!seed)
+diff --git a/src/signal.c b/src/signal.c
+index 85e0661..a4c3912 100644
+--- a/src/signal.c
++++ b/src/signal.c
+@@ -24,7 +24,7 @@ void handle_signal(int received) {
+     reboot(flag);
+ }
+
+-void install_signal_handler() {
++void install_signal_handler(void) {
+     struct sigaction signal_handler;
+     signal_handler.sa_flags = 0;
+     sigemptyset(&signal_handler.sa_mask);
+@@ -37,15 +37,15 @@ void install_signal_handler() {
+     }
+ }
+
+-int restart_machine() {
++int restart_machine(void) {
+     return LINUX_REBOOT_CMD_RESTART;
+ }
+
+-int poweroff_machine() {
++int poweroff_machine(void) {
+     return LINUX_REBOOT_CMD_POWER_OFF;
+ }
+
+-int reap_children() {
++int reap_children(void) {
+     while(waitpid(-1, NULL, WNOHANG) > 0);
+     return -1;
+ }

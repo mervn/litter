@@ -1,0 +1,77 @@
+diff --git a/pigz.c b/pigz.c
+index 01e50e0..e3ff33f 100644
+--- a/pigz.c
++++ b/pigz.c
+@@ -1318,25 +1318,26 @@ local unsigned long crc32z(unsigned long crc,
+ // Return the zlib version as an integer, where each component is interpreted
+ // as a decimal number and converted to four hexadecimal digits. E.g.
+ // '1.2.11.1' -> 0x12b1, or return -1 if the string is not a valid version.
+-local long zlib_vernum(void) {
+-    char const *ver = zlibVersion();
+-    long num = 0;
+-    int left = 4;
+-    int comp = 0;
+-    do {
+-        if (*ver >= '0' && *ver <= '9')
+-            comp = 10 * comp + *ver - '0';
+-        else {
+-            num = (num << 4) + (comp > 0xf ? 0xf : comp);
+-            left--;
+-            if (*ver != '.')
+-                break;
+-            comp = 0;
+-        }
+-        ver++;
+-    } while (left);
+-    return left < 2 ? num << (left << 2) : -1;
+-}
++/*local long zlib_vernum(void) {
++ *   char const *ver = zlibVersion();
++ *   long num = 0;
++ *   int left = 4;
++ *   int comp = 0;
++ *   do {
++ *       if (*ver >= '0' && *ver <= '9')
++ *           comp = 10 * comp + *ver - '0';
++ *       else {
++ *           num = (num << 4) + (comp > 0xf ? 0xf : comp);
++ *           left--;
++ *           if (*ver != '.')
++ *               break;
++ *           comp = 0;
++ *       }
++ *       ver++;
++ *   } while (left);
++ *   return left < 2 ? num << (left << 2) : -1;
++*}
++*/
+
+ #ifndef NOTHREAD
+ // -- threaded portions of pigz --
+@@ -1826,7 +1827,7 @@ local void compress_thread(void *dummy) {
+                     strm.avail_in = (unsigned)len;
+                     if (left || job->more) {
+ #if ZLIB_VERNUM >= 0x1260
+-                        if (zlib_vernum() >= 0x1260) {
++                        if (1) {                    // set true, without stdbool
+                             deflate_engine(&strm, job->out, Z_BLOCK);
+
+                             // add enough empty blocks to get to a byte
+@@ -2428,7 +2429,7 @@ local void single_compress(int reset) {
+             check = CHECK(check, strm->next_in, strm->avail_in);
+             if (more || got) {
+ #if ZLIB_VERNUM >= 0x1260
+-                if (zlib_vernum() >= 0x1260) {
++                if (1) {                    // set true, without stdbool
+                     int bits;
+
+                     DEFLATE_WRITE(Z_BLOCK);
+@@ -4635,7 +4636,7 @@ int main(int argc, char **argv) {
+         defaults();
+
+         // check zlib version
+-        if (zlib_vernum() < 0x1230)
++        if (ZLIB_VERNUM < 0x1230)
+            throw(EINVAL, "zlib version less than 1.2.3");
+
+         // create CRC table, in case zlib compiled with dynamic tables

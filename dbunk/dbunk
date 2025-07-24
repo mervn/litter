@@ -1,0 +1,44 @@
+#!/bin/sh -e
+# Send a notification, to the notification server, via dbus.
+# This exists because:
+#
+#	A) Notification servers do not always include a notify program
+#
+#	B) The dbus-specification may change, and most users do not track it
+#	   _ https://specifications.freedesktop.org/notification-spec _
+if [ $# -lt 1 ]
+then
+	echo -n "usage: dbunk [--debug] [--expire-timeout=N] [--replace-id=N]"
+	echo    " <TITLE> [BODY] [SUMMARY] [APP-NAME] [ACTION,...] [HINT,...]"
+	echo    ""
+	echo    "All flags currently have no effect."
+	exit    1
+fi
+
+dbus-send --dest=org.freedesktop.Notifications --print-reply --session	\
+/org/freedesktop/Notifications org.freedesktop.Notifications.Notify	\
+									\
+string:"$4"								\
+uint32:0								\
+string:"$3"								\
+string:"$1"								\
+string:"$2"								\
+array:string:"$5"							\
+dict:string:variant:"$6"						\
+int32:0									\
+									\
+>/dev/null
+
+# ** TODO ** (Put into separate file when in repo)
+#
+# Add better ACTION and HINT usage description.
+#
+# Implement flags:
+#	--debug:		send output to stdout
+#	--expire-timeout:	change int32:0 to int32:N
+#	--replace-id:		change uint32:0 to uint32:N
+#
+# Think about flags:
+#	--system:		add --system to flags, instead of --session
+#
+# Use semantic variable names (i.e $1 -> $title)

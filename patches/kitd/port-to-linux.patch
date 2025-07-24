@@ -1,0 +1,91 @@
+diff --git a/Makefile b/Makefile
+index c8dd28b..8c4b06c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,10 +1,11 @@
+ PREFIX ?= /usr/local
+-MANDIR ?= ${PREFIX}/man
++MANDIR ?= ${PREFIX}/share/man
+ RCDIR ?= /etc/rc.d
+
+-CFLAGS += -std=c11 -Wall -Wextra
++CFLAGS += -D_BSD_SOURCE -DLIBBSD_OVERLAY -isystem /usr/include/bsd -lbsd
++CFLAGS += -O2 -Wall -Wextra -fpie -march=native -pipe -static-pie -std=c11
+
+-all: kitd rc_script
++all: kitd #rc_script
+
+ rc_script: rc_script.in
+ 	sed 's|%%PREFIX%%|${PREFIX}|g' rc_script.in >rc_script
+@@ -15,10 +16,10 @@ clean:
+ install: kitd kitd.8 rc_script
+ 	install -d ${DESTDIR}${PREFIX}/sbin
+ 	install -d ${DESTDIR}${MANDIR}/man8
+-	install -d ${DESTDIR}${RCDIR}
++#	install -d ${DESTDIR}${RCDIR}
+ 	install kitd ${DESTDIR}${PREFIX}/sbin/kitd
+ 	install -m 644 kitd.8 ${DESTDIR}${MANDIR}/man8/kitd.8
+-	install rc_script ${DESTDIR}${RCDIR}/kitd
++#	install rc_script ${DESTDIR}${RCDIR}/kitd
+
+ uninstall:
+ 	rm -f ${DESTDIR}${PREFIX}/sbin/kitd
+diff --git a/kitd.c b/kitd.c
+index 261f9eb..4286fb4 100644
+--- a/kitd.c
++++ b/kitd.c
+@@ -24,9 +24,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <sys/time.h>
+ #include <sys/wait.h>
+ #include <syslog.h>
++#include <time.h>
+ #include <unistd.h>
+
+ struct LineBuffer {
+@@ -126,8 +126,12 @@ int main(int argc, char *argv[]) {
+ 		name = (name ? &name[1] : argv[0]);
+ 	}
+
++/*
++ 	TODO:	replace pledge() with landlock_create_ruleset().
++
+ 	error = pledge("stdio rpath proc exec", NULL);
+ 	if (error) err(1, "pledge");
++*/
+
+ 	int stdoutRW[2];
+ 	error = pipe2(stdoutRW, O_CLOEXEC);
+@@ -155,10 +159,10 @@ int main(int argc, char *argv[]) {
+
+ 	signal(SIGHUP, signalHandler);
+ 	signal(SIGINT, signalHandler);
++	signal(SIGPWR, signalHandler);
+ 	signal(SIGALRM, signalHandler);
+-	signal(SIGTERM, signalHandler);
+ 	signal(SIGCHLD, signalHandler);
+-	signal(SIGINFO, signalHandler);
++	signal(SIGTERM, signalHandler);
+ 	signal(SIGUSR1, signalHandler);
+ 	signal(SIGUSR2, signalHandler);
+
+@@ -266,7 +270,7 @@ int main(int argc, char *argv[]) {
+ 			}
+ 		}
+
+-		if (signals[SIGINFO]) {
++		if (signals[SIGPWR]) {
+ 			if (child) {
+ 				struct timeval time;
+ 				timersub(&now, &uptime, &time);
+@@ -276,7 +280,7 @@ int main(int argc, char *argv[]) {
+ 				getitimer(ITIMER_REAL, &timer);
+ 				syslog(LOG_INFO, "restarting in %s", humanize(&timer.it_value));
+ 			}
+-			signals[SIGINFO] = 0;
++			signals[SIGPWR] = 0;
+ 		}
+
+ 		int nfds = ppoll(fds, 2, NULL, &unmask);

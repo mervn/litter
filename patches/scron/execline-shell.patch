@@ -1,0 +1,12 @@
+--- a/crond.c
++++ b/crond.c
+@@ -153,7 +153,8 @@ runjob(char *cmd)
+ 		setsid();
+ 		loginfo("run: %s pid: %d at %s",
+ 			cmd, getpid(), ctime(&t));
+-		execl("/bin/sh", "/bin/sh", "-c", cmd, (char *)NULL);
++		execl("/bin/execlineb", "/bin/execlineb", "-PWc",
++			cmd, (char *)NULL);
+ 		logerr("error: failed to execute job: %s time: %s",
+ 		       cmd, ctime(&t));
+ 		_exit(EXIT_FAILURE);

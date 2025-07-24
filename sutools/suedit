@@ -1,0 +1,57 @@
+#!/bin/sh -Ce
+# Edit priveleged file in unprivelged mode.
+# BUG: Editor may switch file to DOS-mode on privileged read.
+
+if [ $# -ne 1 ]
+then
+	echo "usage: suedit FILE"
+	echo
+	echo "Only one argument is allowed, this will be changed in the future."
+
+	exit 1
+fi
+
+[ -r "$1" ] || { privread=1 && tempfile="${TMPDIR}/suedit.${1}" && umask 077; }
+[ -w "$1" ] || { privwrite=1 && tempfile="${TMPDIR}/suedit.${1}" && umask 077; }
+
+# Reading phase.
+if   [ -z "$tempfile" ]
+then
+	# No privelege required.
+	true
+
+elif [ -e "$tempfile" ]
+then
+	echo "File is currently being edited by another suedit process."
+	echo "Press <Enter> to continue, or <CTRL+c> to quit."
+	read _
+
+elif [ -n "$privread" ]
+then
+	su -Pc "cat \"$1\"" ${SUTOOLS_USER:-root} > "$tempfile"
+
+else
+	cat "$1" > "$tempfile"
+
+fi
+
+# Editing phase.
+${EDITOR:-vi} "${tempfile:-$1}"
+
+# Writing phase.
+if   [ -z "$tempfile" ]
+then
+	# No privelege required.
+	true
+
+elif [ -n "$privwrite" ]
+then
+	su -Pc "cp \"$tempfile\" \"$1\"" ${SUTOOLS_USER:-root}
+
+else
+	cp "$tempfile" "$1"
+
+fi
+
+# Cleanup phase.
+rm -f "$tempfile"

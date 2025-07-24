@@ -1,0 +1,58 @@
+#!/bin/sh
+# Print information from system services, followed by a newline.
+
+battery_info() {
+
+	device="/sys/class/power_supply/BAT*"
+
+	read charge_full < "${device}/charge_full"
+	read charge < "${device}/charge_now"
+	read current < "${device}/current_now"
+	read state < "${device}/status"
+
+	case "$status" in
+		Charging)
+			hours=0
+			minutes=0
+
+			echo 🔌 ${hours}:${minutes} left;;
+
+		Discharging)
+			hours=0
+			minutes=0
+
+			echo 💻 ${hours}:${minutes} left;;
+
+		Full)
+			echo 🔌 done ;;
+
+		*)
+			# Do not handle "Not Charging" and "Unknown".
+			;;
+	esac
+
+}
+
+#### KILL
+
+
+#### LOOP
+# Some information should refresh at a different interval.
+# Run the command asynchronously, and use the variable as cache.
+battery=$(battery_info) ; sleep 60 &
+
+#### MAIN
+while true
+do
+	# EVERYTHING BELOW WILL REFRESH EVERY FRAME.
+	# This is costly, only use if accuracy is paramount.
+	# An alternative is "LOOP"; a 5-30 second refresh is often acceptable.
+	time=$(date +'%Y-%m-%d %X')
+
+	# Change the print order, as desired.
+	# Printing is separated to make use of the sway-bar(5) separator_symbol.
+	echo "$battery" \| "$time"
+
+	# Do not change this delay.
+	sleep 1
+done
