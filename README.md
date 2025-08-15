@@ -17,7 +17,7 @@ open-source, is to bootstrap and inspire others' ideas.
 ## Draft
 
 A draft is a model of an idea; in the ballpark of elevator-pitch and pseudocode.
-A draft can be found under `docs/<MEDIUM>/<DRAFT>.md` - and contains the "what",
+A draft can be found under `doc/<MEDIUM>/<DRAFT>.md` - and contains the "what",
 "where", and "why". Some more information may also be included:
 
 - **Features**: api, seperation of concerns, and user-interfaces.
